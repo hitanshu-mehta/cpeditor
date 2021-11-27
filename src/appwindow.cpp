@@ -304,6 +304,7 @@ void AppWindow::allocate()
     findReplaceDialog->setModal(false);
     findReplaceDialog->setWindowFlags(Qt::Dialog | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint |
                                       Qt::WindowCloseButtonHint);
+    findReplaceDialog->setWindowModality(Qt::NonModal);
 
     lspTimerCpp->setInterval(SettingsHelper::getLSPDelayCpp());
     lspTimerJava->setInterval(SettingsHelper::getLSPDelayJava());

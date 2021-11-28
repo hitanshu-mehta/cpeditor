@@ -25,7 +25,7 @@ namespace Widgets
 {
 
 const auto GET_ALL_TAGS_OF_PROBLEM = QLatin1String(R"(
-    SELECT name FROM tag JOIN problem_tag ON tag.id = problem_tag.tagid WHERE problem_tag.problemid = ?
+    SELECT name FROM tag JOIN problem_tag ON tag.id = problem_tag.tagid WHERE problem_tag.problemid =:problemid 
 )");
 
 ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
@@ -43,11 +43,40 @@ ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
         return;
     }
 
-    if (!setupModel())
+    if (!setupProblemModel())
     {
         return;
     }
+
     setupMapper();
+
+    if (!setupTagModel())
+    {
+        return;
+    }
+
+    connect(ui.problemTable->selectionModel(), &QItemSelectionModel::currentRowChanged, this,
+            &ProblemDialog::updateTagsComboBox);
+}
+
+bool ProblemDialog::setupTagModel()
+{
+    getTagsQuery = new QSqlQuery();
+    if (!getTagsQuery->prepare(GET_ALL_TAGS_OF_PROBLEM))
+    {
+        return false;
+    }
+
+    int row = mapper->currentIndex();
+    currProblemId = problemModel->record(row).value("id").toInt();
+    getTagsQuery->bindValue(":problemid", currProblemId);
+    getTagsQuery->exec();
+
+    tagModel = new QSqlQueryModel();
+    tagModel->setQuery(*getTagsQuery);
+    ui.tagsView->setModel(tagModel);
+
+    return true;
 }
 
 void ProblemDialog::on_addButton_clicked()
@@ -62,19 +91,32 @@ void ProblemDialog::on_deleteButton_clicked()
 
 void ProblemDialog::on_cancelButton_clicked()
 {
-    model->submitAll();
+    problemModel->submitAll();
     mapper->submit();
 
     accept();
 }
 
+void ProblemDialog::updateTagsComboBox()
+{
+    int row = mapper->currentIndex();
+    if (row == -1)
+        return;
+    currProblemId = problemModel->record(row).value("id").toInt();
+    getTagsQuery->bindValue(":problemid", currProblemId);
+    getTagsQuery->exec();
+    tagModel->setQuery(*getTagsQuery);
+    ui.tagsView->setModel(tagModel);
+}
+
 void ProblemDialog::deleteProblem()
 {
     int row = mapper->currentIndex();
-    model->removeRow(row);
+    problemModel->removeRow(row);
     mapper->submit();
-    model->submit();
-    mapper->setCurrentIndex(qMin(row, model->rowCount() - 1));
+    problemModel->submit();
+    mapper->setCurrentIndex(qMin(row, problemModel->rowCount() - 1));
+    updateTagsComboBox();
 }
 
 void ProblemDialog::addProblem()
@@ -82,37 +124,37 @@ void ProblemDialog::addProblem()
     int row = mapper->currentIndex();
     if (row == -1)
         ++row;
-    model->insertRow(row);
+    problemModel->insertRow(row);
     mapper->setCurrentIndex(row);
     mapper->submit();
-    model->submit();
+    problemModel->submit();
 
     clearForm();
 }
 
-bool ProblemDialog::setupModel()
+bool ProblemDialog::setupProblemModel()
 {
-    model = new QSqlRelationalTableModel(ui.problemTable);
-    model->setEditStrategy(QSqlTableModel::OnFieldChange);
-    model->setTable("problem");
+    problemModel = new QSqlRelationalTableModel(ui.problemTable);
+    problemModel->setEditStrategy(QSqlTableModel::OnFieldChange);
+    problemModel->setTable("problem");
 
     // Set the localized header captions:
-    model->setHeaderData(model->fieldIndex("title"), Qt::Horizontal, tr("Title"));
-    model->setHeaderData(model->fieldIndex("difficulty"), Qt::Horizontal, tr("Difficulty"));
-    model->setHeaderData(model->fieldIndex("time_taken"), Qt::Horizontal, tr("Time Taken"));
-    model->setHeaderData(model->fieldIndex("no_of_attempts"), Qt::Horizontal, tr("No of attempts"));
-    model->setHeaderData(model->fieldIndex("description"), Qt::Horizontal, tr("Description"));
+    problemModel->setHeaderData(problemModel->fieldIndex("title"), Qt::Horizontal, tr("Title"));
+    problemModel->setHeaderData(problemModel->fieldIndex("difficulty"), Qt::Horizontal, tr("Difficulty"));
+    problemModel->setHeaderData(problemModel->fieldIndex("time_taken"), Qt::Horizontal, tr("Time Taken"));
+    problemModel->setHeaderData(problemModel->fieldIndex("no_of_attempts"), Qt::Horizontal, tr("No of attempts"));
+    problemModel->setHeaderData(problemModel->fieldIndex("description"), Qt::Horizontal, tr("Description"));
 
-    // Populate the model:
-    if (!model->select())
+    // Populate the problemModel:
+    if (!problemModel->select())
     {
-        showError(model->lastError());
+        showError(problemModel->lastError());
         return false;
     }
 
-    // Set the model and hide the ID column:
-    ui.problemTable->setModel(model);
-    ui.problemTable->setColumnHidden(model->fieldIndex("id"), true);
+    // Set the problemModel and hide the ID column:
+    ui.problemTable->setModel(problemModel);
+    ui.problemTable->setColumnHidden(problemModel->fieldIndex("id"), true);
     ui.problemTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
     return true;
@@ -121,20 +163,20 @@ bool ProblemDialog::setupModel()
 void ProblemDialog::setupMapper()
 {
     mapper = new QDataWidgetMapper(this);
-    mapper->setModel(model);
+    mapper->setModel(problemModel);
     mapper->setSubmitPolicy(QDataWidgetMapper::AutoSubmit);
-    mapper->addMapping(ui.titleEdit, model->fieldIndex("title"));
-    mapper->addMapping(ui.filePathEdit, model->fieldIndex("file_path"));
-    mapper->addMapping(ui.problemUrlEdit, model->fieldIndex("problem_url"));
-    mapper->addMapping(ui.submissionUrlEdit, model->fieldIndex("solution_url"));
-    mapper->addMapping(ui.descriptionEdit, model->fieldIndex("description"));
-    mapper->addMapping(ui.difficultyEdit, model->fieldIndex("difficulty"));
-    mapper->addMapping(ui.timeTakenEdit, model->fieldIndex("time_taken"));
+    mapper->addMapping(ui.titleEdit, problemModel->fieldIndex("title"));
+    mapper->addMapping(ui.filePathEdit, problemModel->fieldIndex("file_path"));
+    mapper->addMapping(ui.problemUrlEdit, problemModel->fieldIndex("problem_url"));
+    mapper->addMapping(ui.submissionUrlEdit, problemModel->fieldIndex("solution_url"));
+    mapper->addMapping(ui.descriptionEdit, problemModel->fieldIndex("description"));
+    mapper->addMapping(ui.difficultyEdit, problemModel->fieldIndex("difficulty"));
+    mapper->addMapping(ui.timeTakenEdit, problemModel->fieldIndex("time_taken"));
 
     connect(ui.problemTable->selectionModel(), &QItemSelectionModel::currentRowChanged, mapper,
             &QDataWidgetMapper::setCurrentModelIndex);
 
-    ui.problemTable->setCurrentIndex(model->index(0, 0));
+    ui.problemTable->setCurrentIndex(problemModel->index(0, 0));
 }
 
 void ProblemDialog::clearForm()

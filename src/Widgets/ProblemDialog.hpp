@@ -39,6 +39,8 @@ class ProblemDialog : public QDialog
     void on_deleteButton_clicked();
     void on_cancelButton_clicked();
 
+    void updateTagsComboBox();
+
   private:
     void showError(const QSqlError &err);
 
@@ -46,7 +48,8 @@ class ProblemDialog : public QDialog
      * @brief setup model of `problem` table
      * @return true if model is successfully setup, false otherwise.
      */
-    bool setupModel();
+    bool setupProblemModel();
+    bool setupTagModel();
     void setupMapper();
 
     void addProblem();
@@ -55,9 +58,13 @@ class ProblemDialog : public QDialog
     void clearForm();
 
   private:
-    QSqlRelationalTableModel *model;
+    QSqlRelationalTableModel *problemModel;
+    QSqlQueryModel *tagModel;
     QDataWidgetMapper *mapper;
-    int tagIdx;
+    QSqlQuery *getTagsQuery;
+
+    int currProblemId;
+
     Ui::problemDialog ui;
 };
 

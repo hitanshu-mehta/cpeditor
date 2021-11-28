@@ -19,11 +19,14 @@
 #include "../Core/EventLogger.hpp"
 #include "../InitDB.h"
 
-#include <QDataWidgetMapper>
 #include <QMessageBox>
 
 namespace Widgets
 {
+
+const auto GET_ALL_TAGS_OF_PROBLEM = QLatin1String(R"(
+    SELECT name FROM tag JOIN problem_tag ON tag.id = problem_tag.tagid WHERE problem_tag.problemid = ?
+)");
 
 ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
 {
@@ -40,27 +43,71 @@ ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
         return;
     }
 
-    // Create the data model:
-    model = new QSqlRelationalTableModel(ui.problemTable);
-    model->setEditStrategy(QSqlTableModel::OnManualSubmit);
-    model->setTable("problems");
+    if (!setupModel())
+    {
+        return;
+    }
+    setupMapper();
+}
 
-    tagIdx = model->fieldIndex("tags");
-    model->setRelation(tagIdx, QSqlRelation("tags", "id", "name"));
+void ProblemDialog::on_addButton_clicked()
+{
+    addProblem();
+}
+
+void ProblemDialog::on_deleteButton_clicked()
+{
+    deleteProblem();
+}
+
+void ProblemDialog::on_cancelButton_clicked()
+{
+    model->submitAll();
+    mapper->submit();
+
+    accept();
+}
+
+void ProblemDialog::deleteProblem()
+{
+    int row = mapper->currentIndex();
+    model->removeRow(row);
+    mapper->submit();
+    model->submit();
+    mapper->setCurrentIndex(qMin(row, model->rowCount() - 1));
+}
+
+void ProblemDialog::addProblem()
+{
+    int row = mapper->currentIndex();
+    if (row == -1)
+        ++row;
+    model->insertRow(row);
+    mapper->setCurrentIndex(row);
+    mapper->submit();
+    model->submit();
+
+    clearForm();
+}
+
+bool ProblemDialog::setupModel()
+{
+    model = new QSqlRelationalTableModel(ui.problemTable);
+    model->setEditStrategy(QSqlTableModel::OnFieldChange);
+    model->setTable("problem");
 
     // Set the localized header captions:
     model->setHeaderData(model->fieldIndex("title"), Qt::Horizontal, tr("Title"));
     model->setHeaderData(model->fieldIndex("difficulty"), Qt::Horizontal, tr("Difficulty"));
     model->setHeaderData(model->fieldIndex("time_taken"), Qt::Horizontal, tr("Time Taken"));
     model->setHeaderData(model->fieldIndex("no_of_attempts"), Qt::Horizontal, tr("No of attempts"));
-    model->setHeaderData(tagIdx, Qt::Horizontal, tr("Tags"));
-    model->setHeaderData(model->fieldIndex("description"), Qt::Horizontal, tr("description"));
+    model->setHeaderData(model->fieldIndex("description"), Qt::Horizontal, tr("Description"));
 
     // Populate the model:
     if (!model->select())
     {
         showError(model->lastError());
-        return;
+        return false;
     }
 
     // Set the model and hide the ID column:
@@ -68,17 +115,19 @@ ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
     ui.problemTable->setColumnHidden(model->fieldIndex("id"), true);
     ui.problemTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    ui.tagEdit->setModel(model->relationModel(tagIdx));
-    ui.tagEdit->setModelColumn(model->relationModel(tagIdx)->fieldIndex("name"));
+    return true;
+}
 
-    QDataWidgetMapper *mapper = new QDataWidgetMapper(this);
+void ProblemDialog::setupMapper()
+{
+    mapper = new QDataWidgetMapper(this);
     mapper->setModel(model);
+    mapper->setSubmitPolicy(QDataWidgetMapper::AutoSubmit);
     mapper->addMapping(ui.titleEdit, model->fieldIndex("title"));
     mapper->addMapping(ui.filePathEdit, model->fieldIndex("file_path"));
     mapper->addMapping(ui.problemUrlEdit, model->fieldIndex("problem_url"));
     mapper->addMapping(ui.submissionUrlEdit, model->fieldIndex("solution_url"));
     mapper->addMapping(ui.descriptionEdit, model->fieldIndex("description"));
-    mapper->addMapping(ui.tagEdit, model->fieldIndex("tags"));
     mapper->addMapping(ui.difficultyEdit, model->fieldIndex("difficulty"));
     mapper->addMapping(ui.timeTakenEdit, model->fieldIndex("time_taken"));
 
@@ -86,6 +135,18 @@ ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
             &QDataWidgetMapper::setCurrentModelIndex);
 
     ui.problemTable->setCurrentIndex(model->index(0, 0));
+}
+
+void ProblemDialog::clearForm()
+{
+    ui.titleEdit->clear();
+    ui.problemUrlEdit->clear();
+    ui.submissionUrlEdit->clear();
+    ui.filePathEdit->clear();
+    ui.difficultyEdit->clear();
+    ui.descriptionEdit->clear();
+    ui.timeTakenEdit->clear();
+    ui.titleEdit->setFocus();
 }
 
 void ProblemDialog::showError(const QSqlError &err)

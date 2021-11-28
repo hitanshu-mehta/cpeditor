@@ -18,6 +18,7 @@
 #ifndef PROBLEMDIALOG_HPP
 #define PROBLEMDIALOG_HPP
 
+#include <QDataWidgetMapper>
 #include <QDialog>
 #include <QtSql>
 
@@ -33,11 +34,29 @@ class ProblemDialog : public QDialog
   public:
     ProblemDialog(QWidget *parent = nullptr);
 
+  private slots:
+    void on_addButton_clicked();
+    void on_deleteButton_clicked();
+    void on_cancelButton_clicked();
+
   private:
     void showError(const QSqlError &err);
 
+    /**
+     * @brief setup model of `problem` table
+     * @return true if model is successfully setup, false otherwise.
+     */
+    bool setupModel();
+    void setupMapper();
+
+    void addProblem();
+    void deleteProblem();
+
+    void clearForm();
+
   private:
     QSqlRelationalTableModel *model;
+    QDataWidgetMapper *mapper;
     int tagIdx;
     Ui::problemDialog ui;
 };

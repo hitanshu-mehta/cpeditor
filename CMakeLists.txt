@@ -21,6 +21,7 @@ endif()
 
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(Qt5 COMPONENTS Network REQUIRED)
+find_package(Qt5 COMPONENTS Sql REQUIRED)
 find_package(Qt5 COMPONENTS LinguistTools REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
@@ -238,6 +239,8 @@ add_executable(cpeditor
     src/Widgets/UpdatePresenter.hpp
     src/Widgets/UpdateProgressDialog.cpp
     src/Widgets/UpdateProgressDialog.hpp
+    src/Widgets/ProblemDialog.hpp
+    src/Widgets/ProblemDialog.cpp
 
     src/application.cpp
     src/application.hpp
@@ -253,6 +256,7 @@ add_executable(cpeditor
 
     ui/appwindow.ui
     ui/mainwindow.ui
+    ui/problemDialog.ui
 
     ${CMAKE_BINARY_DIR}/generated/version.hpp
     ${CMAKE_BINARY_DIR}/generated/SettingsHelper.hpp
@@ -270,6 +274,7 @@ target_link_libraries(cpeditor PRIVATE LSPClient)
 target_link_libraries(cpeditor PRIVATE QCodeEditor)
 target_link_libraries(cpeditor PRIVATE Qt5::Network)
 target_link_libraries(cpeditor PRIVATE Qt5::Widgets)
+target_link_libraries(cpeditor PRIVATE Qt5::Sql)
 target_link_libraries(cpeditor PRIVATE QtFindReplaceDialog)
 target_link_libraries(cpeditor PRIVATE SingleApplication)
 target_link_libraries(cpeditor PRIVATE QHttp)

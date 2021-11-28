@@ -33,6 +33,7 @@
 #include "Util/QCodeEditorUtil.hpp"
 #include "Widgets/Stopwatch.hpp"
 #include "Widgets/TestCases.hpp"
+#include "Widgets/ProblemDialog.hpp"
 #include "appwindow.hpp"
 #include "generated/SettingsHelper.hpp"
 #include "generated/version.hpp"
@@ -69,6 +70,9 @@ MainWindow::MainWindow(int index, AppWindow *parent)
     ui->testCasesLayout->addWidget(testcases);
     connect(testcases, &Widgets::TestCases::checkerChanged, this, &MainWindow::updateChecker);
     connect(testcases, &Widgets::TestCases::requestRun, this, &MainWindow::runTestCase);
+
+    problemDialog = new Widgets::ProblemDialog();
+    problemDialog->showNormal();
 
     setEditor();
     setStopwatch();

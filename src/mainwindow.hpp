@@ -51,6 +51,7 @@ namespace Widgets
 {
 class TestCases;
 class Stopwatch;
+class ProblemDialog;
 } // namespace Widgets
 
 class MainWindow : public QMainWindow
@@ -226,6 +227,7 @@ class MainWindow : public QMainWindow
 
     Widgets::TestCases *testcases = nullptr;
     Widgets::Stopwatch *stopwatch = nullptr;
+    Widgets::ProblemDialog *problemDialog = nullptr;
 
     QTimer *autoSaveTimer = nullptr;
 

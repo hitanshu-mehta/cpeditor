@@ -16,6 +16,8 @@
  */
 
 #include "Widgets/ProblemDialog.hpp"
+#include "Widgets/TagManager.hpp"
+
 #include "../Core/EventLogger.hpp"
 #include "../InitDB.h"
 
@@ -24,12 +26,9 @@
 namespace Widgets
 {
 
-const auto GET_ALL_TAGS_OF_PROBLEM = QLatin1String(R"(
-    SELECT name FROM tag JOIN problem_tag ON tag.id = problem_tag.tagid WHERE problem_tag.problemid =:problemid 
-)");
-
 ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
 {
+
     ui.setupUi(this);
     setWindowTitle("Add a new problem");
 
@@ -50,33 +49,14 @@ ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
 
     setupMapper();
 
-    if (!setupTagModel())
-    {
-        return;
-    }
+    tagManager = new TagManager(this);
+    ui.tagManager->addWidget(tagManager);
+
+    addProblemTagQuery = new QSqlQuery(INSERT_PROBLEM_TAG);
 
     connect(ui.problemTable->selectionModel(), &QItemSelectionModel::currentRowChanged, this,
             &ProblemDialog::updateTagsComboBox);
-}
-
-bool ProblemDialog::setupTagModel()
-{
-    getTagsQuery = new QSqlQuery();
-    if (!getTagsQuery->prepare(GET_ALL_TAGS_OF_PROBLEM))
-    {
-        return false;
-    }
-
-    int row = mapper->currentIndex();
-    currProblemId = problemModel->record(row).value("id").toInt();
-    getTagsQuery->bindValue(":problemid", currProblemId);
-    getTagsQuery->exec();
-
-    tagModel = new QSqlQueryModel();
-    tagModel->setQuery(*getTagsQuery);
-    ui.tagsView->setModel(tagModel);
-
-    return true;
+    connect(tagManager, &Widgets::TagManager::addTagToProblem, this, &ProblemDialog::addTagToCurrentProblem);
 }
 
 void ProblemDialog::on_addButton_clicked()
@@ -99,22 +79,18 @@ void ProblemDialog::on_cancelButton_clicked()
 
 void ProblemDialog::updateTagsComboBox()
 {
-    int row = mapper->currentIndex();
-    if (row == -1)
-        return;
-    currProblemId = problemModel->record(row).value("id").toInt();
-    getTagsQuery->bindValue(":problemid", currProblemId);
-    getTagsQuery->exec();
-    tagModel->setQuery(*getTagsQuery);
-    ui.tagsView->setModel(tagModel);
+    int id = getCurrentProblemid();
+    if (id != -1)
+        tagManager->updateTagView(id);
 }
 
 void ProblemDialog::deleteProblem()
 {
     int row = mapper->currentIndex();
     problemModel->removeRow(row);
-    mapper->submit();
     problemModel->submit();
+    ui.problemTable->setRowHidden(row, true);
+    mapper->submit();
     mapper->setCurrentIndex(qMin(row, problemModel->rowCount() - 1));
     updateTagsComboBox();
 }
@@ -130,6 +106,13 @@ void ProblemDialog::addProblem()
     problemModel->submit();
 
     clearForm();
+}
+
+void ProblemDialog::addProblemTag(const QVariant problemid, const QVariant tagid)
+{
+    addProblemTagQuery->addBindValue(problemid);
+    addProblemTagQuery->addBindValue(tagid);
+    addProblemTagQuery->exec();
 }
 
 bool ProblemDialog::setupProblemModel()
@@ -179,6 +162,16 @@ void ProblemDialog::setupMapper()
     ui.problemTable->setCurrentIndex(problemModel->index(0, 0));
 }
 
+void ProblemDialog::addTagToCurrentProblem(const QVariant tagid)
+{
+    int problemid = getCurrentProblemid();
+    if (problemid != -1)
+    {
+        addProblemTag(QVariant(problemid), tagid);
+        updateTagsComboBox();
+    }
+}
+
 void ProblemDialog::clearForm()
 {
     ui.titleEdit->clear();
@@ -189,6 +182,14 @@ void ProblemDialog::clearForm()
     ui.descriptionEdit->clear();
     ui.timeTakenEdit->clear();
     ui.titleEdit->setFocus();
+}
+
+int ProblemDialog::getCurrentProblemid() const
+{
+    int row = mapper->currentIndex();
+    if (row == -1)
+        return -1;
+    return problemModel->record(row).value("id").toInt();
 }
 
 void ProblemDialog::showError(const QSqlError &err)

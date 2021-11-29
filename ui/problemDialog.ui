@@ -52,6 +52,9 @@
       </property>
       <item>
        <layout class="QVBoxLayout" name="upperLayout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item>
          <widget class="QTableView" name="problemTable">
           <property name="sizePolicy">
@@ -93,23 +96,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QListView" name="tagsView">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>50</height>
-           </size>
-          </property>
-          <property name="flow">
-           <enum>QListView::LeftToRight</enum>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="tagManager"/>
         </item>
        </layout>
       </item>
@@ -236,8 +223,14 @@ p, li { white-space: pre-wrap; }
         </item>
         <item>
          <widget class="QPushButton" name="addButton">
+          <property name="focusPolicy">
+           <enum>Qt::TabFocus</enum>
+          </property>
           <property name="text">
            <string>Add</string>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
           </property>
          </widget>
         </item>

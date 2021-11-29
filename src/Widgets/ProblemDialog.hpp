@@ -20,7 +20,10 @@
 
 #include <QDataWidgetMapper>
 #include <QDialog>
+#include <QSqlQuery>
 #include <QtSql>
+
+#include "TagManager.hpp"
 
 #include "../../ui/ui_problemDialog.h"
 
@@ -41,6 +44,8 @@ class ProblemDialog : public QDialog
 
     void updateTagsComboBox();
 
+    void addTagToCurrentProblem(const QVariant tagid);
+
   private:
     void showError(const QSqlError &err);
 
@@ -49,23 +54,30 @@ class ProblemDialog : public QDialog
      * @return true if model is successfully setup, false otherwise.
      */
     bool setupProblemModel();
-    bool setupTagModel();
     void setupMapper();
 
     void addProblem();
     void deleteProblem();
 
+    void addProblemTag(const QVariant problemid, const QVariant tagid);
+
     void clearForm();
+
+    /**
+     * @brief get problem id of currently selected row. problem id is non-negative.
+     * @return -1 if no row is seleted otherwise problem id
+     */
+    int getCurrentProblemid() const;
 
   private:
     QSqlRelationalTableModel *problemModel;
-    QSqlQueryModel *tagModel;
     QDataWidgetMapper *mapper;
-    QSqlQuery *getTagsQuery;
 
-    int currProblemId;
+    QSqlQuery *addProblemTagQuery;
 
     Ui::problemDialog ui;
+
+    Widgets::TagManager *tagManager;
 };
 
 } // namespace Widgets

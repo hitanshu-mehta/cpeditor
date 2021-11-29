@@ -229,6 +229,8 @@ add_executable(cpeditor
     src/Widgets/Stopwatch.hpp
     src/Widgets/SupportUsDialog.cpp
     src/Widgets/SupportUsDialog.hpp
+    src/Widgets/TagManager.cpp
+    src/Widgets/TagManager.hpp
     src/Widgets/TestCase.cpp
     src/Widgets/TestCase.hpp
     src/Widgets/TestCaseEdit.cpp

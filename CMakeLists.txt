@@ -223,6 +223,8 @@ add_executable(cpeditor
     src/Widgets/ContestDialog.hpp
     src/Widgets/DiffViewer.cpp
     src/Widgets/DiffViewer.hpp
+    src/Widgets/RenderMarkdownItemDelegate.cpp
+    src/Widgets/RenderMarkdownItemDelegate.hpp
     src/Widgets/RichTextCheckBox.cpp
     src/Widgets/RichTextCheckBox.hpp
     src/Widgets/Stopwatch.cpp

@@ -16,6 +16,7 @@
  */
 
 #include "Widgets/ProblemDialog.hpp"
+#include "Widgets/RenderMarkdownItemDelegate.hpp"
 #include "Widgets/TagManager.hpp"
 
 #include "../Core/EventLogger.hpp"
@@ -52,11 +53,16 @@ ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
     tagManager = new TagManager(this);
     ui.tagManager->addWidget(tagManager);
 
+    RenderMarkdownItemDelegate *itemDelegate = new RenderMarkdownItemDelegate(this);
+    ui.problemTable->setItemDelegate(itemDelegate);
+
     addProblemTagQuery = new QSqlQuery(INSERT_PROBLEM_TAG);
 
     connect(ui.problemTable->selectionModel(), &QItemSelectionModel::currentRowChanged, this,
             &ProblemDialog::updateTagsComboBox);
     connect(tagManager, &Widgets::TagManager::addTagToProblem, this, &ProblemDialog::addTagToCurrentProblem);
+
+    ui.problemTable->setCurrentIndex(problemModel->index(0, 0));
 }
 
 void ProblemDialog::on_addButton_clicked()

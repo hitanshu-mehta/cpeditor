@@ -185,6 +185,9 @@
              <height>100</height>
             </size>
            </property>
+           <property name="focusPolicy">
+            <enum>Qt::TabFocus</enum>
+           </property>
           </widget>
          </item>
         </layout>

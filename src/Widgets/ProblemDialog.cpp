@@ -67,6 +67,7 @@ ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
 
 void ProblemDialog::on_addButton_clicked()
 {
+    clearForm();
     addProblem();
 }
 
@@ -109,9 +110,7 @@ void ProblemDialog::addProblem()
     problemModel->insertRow(row);
     mapper->setCurrentIndex(row);
     mapper->submit();
-    problemModel->submit();
-
-    clearForm();
+    problemModel->submitAll();
 }
 
 void ProblemDialog::addProblemTag(const QVariant problemid, const QVariant tagid)
@@ -187,7 +186,6 @@ void ProblemDialog::clearForm()
     ui.difficultyEdit->clear();
     ui.descriptionEdit->clear();
     ui.timeTakenEdit->clear();
-    ui.titleEdit->setFocus();
 }
 
 int ProblemDialog::getCurrentProblemid() const

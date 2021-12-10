@@ -18,11 +18,13 @@
 #include "Widgets/ProblemDialog.hpp"
 #include "Widgets/RenderMarkdownItemDelegate.hpp"
 #include "Widgets/TagManager.hpp"
+#include "generated/SettingsHelper.hpp"
 
 #include "../Core/EventLogger.hpp"
 #include "../InitDB.h"
 
 #include <QMessageBox>
+#include <QTreeWidget>
 
 namespace Widgets
 {
@@ -55,6 +57,12 @@ ProblemDialog::ProblemDialog(QWidget *parent) : QDialog(parent)
 
     RenderMarkdownItemDelegate *itemDelegate = new RenderMarkdownItemDelegate(this);
     ui.problemTable->setItemDelegate(itemDelegate);
+
+    filePathCompleter = new QCompleter(SettingsHelper::getRecentFiles(), this);
+    filePathCompleter->setCompletionMode(QCompleter::InlineCompletion);
+    filePathCompleter->setCaseSensitivity(Qt::CaseInsensitive);
+    filePathCompleter->setFilterMode(Qt::MatchContains);
+    ui.filePathEdit->setCompleter(filePathCompleter);
 
     addProblemTagQuery = new QSqlQuery(INSERT_PROBLEM_TAG);
 

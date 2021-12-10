@@ -18,6 +18,7 @@
 #ifndef PROBLEMDIALOG_HPP
 #define PROBLEMDIALOG_HPP
 
+#include <QCompleter>
 #include <QDataWidgetMapper>
 #include <QDialog>
 #include <QSqlQuery>
@@ -76,6 +77,7 @@ class ProblemDialog : public QDialog
     QSqlQuery *addProblemTagQuery;
 
     Ui::problemDialog ui;
+    QCompleter *filePathCompleter;
 
     Widgets::TagManager *tagManager;
 };

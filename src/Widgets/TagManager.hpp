@@ -27,6 +27,7 @@ class QTimer;
 class QLabel;
 class QListView;
 class QVariant;
+class QCompleter;
 
 namespace Widgets
 {
@@ -47,7 +48,6 @@ class TagManager : public QWidget
 
   private slots:
     void doneCompletion();
-    void autoSuggest();
     void addTagShortCutTriggered();
     void deleteTagShortCutTriggered();
 
@@ -57,8 +57,6 @@ class TagManager : public QWidget
         QVariant id;
         QString name;
     };
-
-    void showCompletion(const QVector<TagManager::Tag> &choices);
 
     QVariant addTag(const QString &name, bool removable);
     void deleteTag(const QString &name);
@@ -74,17 +72,17 @@ class TagManager : public QWidget
     QLabel *label;
     QListView *tagsView;
     QLineEdit *editor;
-    QTreeWidget *popup;
-    QTimer timer;
+    QCompleter *completer;
     QLabel *msg;
 
     QSqlQueryModel *tagsOfProblemModel;
+    QSqlQueryModel *getTagsModel;
 
     QSqlQuery *getTagsOfProblemQuery;
     QSqlQuery *getTagsQuery;
     QSqlQuery *insertTagQuery;
     QSqlQuery *deleteTagQuery;
-    QSqlQuery *getIdOfTag;
+    QSqlQuery *getIdOfTagQuery;
 
     QVector<Tag> tags;
 };

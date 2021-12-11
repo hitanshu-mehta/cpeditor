@@ -18,7 +18,10 @@
 #include "Widgets/TagManager.hpp"
 #include "Core/EventLogger.hpp"
 
+#include <iostream>
+
 #include <QAction>
+#include <QCompleter>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -59,28 +62,11 @@ TagManager::TagManager(QWidget *parent) : QWidget(parent)
     editor = new QLineEdit();
     editor->setMaximumHeight(50);
 
-    popup = new QTreeWidget;
-    popup->setWindowFlags(Qt::Popup);
-    popup->setFocusPolicy(Qt::NoFocus);
-    popup->setFocusProxy(editor);
-    popup->setMouseTracking(true);
-
-    popup->setColumnCount(1);
-    popup->setUniformRowHeights(true);
-    popup->setRootIsDecorated(false);
-    popup->setEditTriggers(QTreeWidget::NoEditTriggers);
-    popup->setSelectionBehavior(QTreeWidget::SelectRows);
-    popup->setFrameStyle(QFrame::Box | QFrame::Plain);
-    popup->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    popup->header()->hide();
-    popup->hide();
-
     msg = new QLabel();
     msg->hide();
 
     searchBarLayout->addWidget(editor);
     searchBarLayout->addWidget(msg);
-    searchBarLayout->addWidget(popup);
 
     // Setup UI
     mainLayout->addWidget(label);
@@ -91,7 +77,7 @@ TagManager::TagManager(QWidget *parent) : QWidget(parent)
     getTagsOfProblemQuery = new QSqlQuery(GET_ALL_TAGS_OF_PROBLEM);
     insertTagQuery = new QSqlQuery(INSERT_TAG);
     deleteTagQuery = new QSqlQuery(DELETE_TAG);
-    getIdOfTag = new QSqlQuery(GET_ID_OF_TAG);
+    getIdOfTagQuery = new QSqlQuery(GET_ID_OF_TAG);
 
     getTagsOfProblemQuery->prepare(GET_ALL_TAGS_OF_PROBLEM);
     getTagsOfProblemQuery->exec();
@@ -100,12 +86,16 @@ TagManager::TagManager(QWidget *parent) : QWidget(parent)
     tagsOfProblemModel->setQuery(*getTagsOfProblemQuery);
     tagsView->setModel(tagsOfProblemModel);
 
-    connect(popup, &QTreeWidget::itemClicked, this, &TagManager::doneCompletion);
-
-    timer.setSingleShot(true);
-    timer.setInterval(500);
-    connect(&timer, &QTimer::timeout, this, &TagManager::autoSuggest);
-    connect(editor, &QLineEdit::textEdited, &timer, QOverload<>::of(&QTimer::start));
+    completer = new QCompleter(editor);
+    completer->setCompletionMode(QCompleter::PopupCompletion);
+    completer->setCaseSensitivity(Qt::CaseInsensitive);
+    completer->setFilterMode(Qt::MatchContains);
+    getTagsModel = new QSqlQueryModel(this);
+    getTagsModel->setQuery("SELECT name FROM tag");
+    completer->setModel(getTagsModel);
+    editor->setCompleter(completer);
+    connect(completer, QOverload<const QString &>::of(&QCompleter::activated),
+            [=](const QString &text) { displayMsg("Press Ctrl+Shift+A to add new Tag.", 5000); });
 
     // Set shortcuts for editor
     QAction *addAction = new QAction(this);
@@ -131,10 +121,20 @@ TagManager::TagManager(QWidget *parent) : QWidget(parent)
 
 TagManager::~TagManager()
 {
-    delete popup;
     delete label;
-    delete editor;
     delete tagsView;
+    delete editor;
+    delete completer;
+    delete msg;
+
+    delete tagsOfProblemModel;
+    delete getTagsModel;
+
+    delete getTagsOfProblemQuery;
+    delete getTagsQuery;
+    delete insertTagQuery;
+    delete deleteTagQuery;
+    delete getIdOfTagQuery;
 }
 
 void TagManager::updateTagView(int problemid)
@@ -151,83 +151,19 @@ void TagManager::updateTagView(int problemid)
 
 void TagManager::doneCompletion()
 {
-    timer.stop();
-    popup->hide();
     editor->setFocus();
-    QTreeWidgetItem *item = popup->currentItem();
-    if (item)
+    QString currentTag = editor->text();
+
+    if (!currentTag.isEmpty())
     {
-        editor->setText(item->text(0));
-        getIdOfTag->addBindValue(editor->text());
-        getIdOfTag->exec();
-        if (getIdOfTag->next())
+        getIdOfTagQuery->addBindValue(currentTag);
+        getIdOfTagQuery->exec();
+        if (getIdOfTagQuery->next())
         {
-            auto tagid = getIdOfTag->value(0);
+            auto tagid = getIdOfTagQuery->value(0);
             emit addTagToProblem(tagid);
         }
     }
-}
-
-void TagManager::showCompletion(const QVector<TagManager::Tag> &choices)
-{
-    if (choices.isEmpty())
-    {
-        QString currSearch = editor->text();
-        if (!currSearch.isEmpty())
-        {
-            displayMsg("Press Ctrl+Shift+A to add new Tag.", 5000);
-        }
-
-        popup->clear();
-        popup->hide();
-        return;
-    }
-
-    const QPalette &pal = editor->palette();
-    QColor color = pal.color(QPalette::Disabled, QPalette::WindowText);
-
-    popup->setUpdatesEnabled(false);
-    popup->clear();
-    for (const auto &choice : choices)
-    {
-        auto item = new QTreeWidgetItem(popup);
-        item->setText(0, choice.name);
-        item->setForeground(0, color);
-    }
-
-    popup->setCurrentItem(popup->topLevelItem(0));
-    popup->resizeColumnToContents(0);
-    popup->setUpdatesEnabled(true);
-
-    popup->setFocus();
-    popup->show();
-}
-
-void TagManager::autoSuggest()
-{
-    QString str = editor->text();
-    if (str.length() == 0)
-    {
-        tags.clear();
-        showCompletion(tags);
-        return;
-    }
-    // Append '%' for prefix match
-    str.append('%');
-
-    getTagsQuery->prepare(GET_ALL_TAGS);
-    getTagsQuery->bindValue(":phrase", str);
-    getTagsQuery->exec();
-
-    tags.clear();
-    while (getTagsQuery->next())
-    {
-        QVariant id = getTagsQuery->value(0);
-        QString name = getTagsQuery->value(1).toString();
-        tags.append({id, name});
-    }
-
-    showCompletion(tags);
 }
 
 void TagManager::addTagShortCutTriggered()
@@ -250,7 +186,6 @@ void TagManager::deleteTagShortCutTriggered()
     QString currSearch = editor->text();
     deleteTag(currSearch);
 
-    popup->hide();
     displayMsg(currSearch + " tag is deleted", 2000);
 }
 

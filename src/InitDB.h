@@ -38,7 +38,7 @@ void addProblemTag(QSqlQuery &q, const QVariant problemid, const QVariant tagid)
 const auto PROBLEM_SQL = QLatin1String(R"(
     CREATE TABLE IF NOT EXISTS problem(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title VARCHAR(40) NOT NULL, 
+        title VARCHAR(40) NOT NULL,
         difficulty INTEGER,
         time_taken INTEGER,
         problem_url VARCHAR,

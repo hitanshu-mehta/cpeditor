@@ -79,12 +79,9 @@ class TagManager : public QWidget
     QSqlQueryModel *getTagsModel;
 
     QSqlQuery *getTagsOfProblemQuery;
-    QSqlQuery *getTagsQuery;
     QSqlQuery *insertTagQuery;
     QSqlQuery *deleteTagQuery;
     QSqlQuery *getIdOfTagQuery;
-
-    QVector<Tag> tags;
 };
 
 } // namespace Widgets

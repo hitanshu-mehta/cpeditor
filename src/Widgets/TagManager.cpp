@@ -29,8 +29,6 @@
 #include <QTimer>
 #include <QTreeWidget>
 
-const static auto GET_ALL_TAGS = QLatin1String(R"(SELECT id, name FROM tag WHERE name LIKE :phrase)");
-
 const static auto GET_ALL_TAGS_OF_PROBLEM = QLatin1String(
     R"(SELECT name FROM problem_tag JOIN tag ON problem_tag.tagid = tag.id WHERE problem_tag.problemid=:problemid)");
 
@@ -73,19 +71,20 @@ TagManager::TagManager(QWidget *parent) : QWidget(parent)
     mainLayout->addWidget(tagsView);
     mainLayout->addLayout(searchBarLayout);
 
-    getTagsQuery = new QSqlQuery(GET_ALL_TAGS);
+    // Initialize queries
     getTagsOfProblemQuery = new QSqlQuery(GET_ALL_TAGS_OF_PROBLEM);
     insertTagQuery = new QSqlQuery(INSERT_TAG);
     deleteTagQuery = new QSqlQuery(DELETE_TAG);
     getIdOfTagQuery = new QSqlQuery(GET_ID_OF_TAG);
 
+    // Setup tagsView
     getTagsOfProblemQuery->prepare(GET_ALL_TAGS_OF_PROBLEM);
     getTagsOfProblemQuery->exec();
-
     tagsOfProblemModel = new QSqlQueryModel();
     tagsOfProblemModel->setQuery(*getTagsOfProblemQuery);
     tagsView->setModel(tagsOfProblemModel);
 
+    // Setup completer
     completer = new QCompleter(editor);
     completer->setCompletionMode(QCompleter::PopupCompletion);
     completer->setCaseSensitivity(Qt::CaseInsensitive);
@@ -131,7 +130,6 @@ TagManager::~TagManager()
     delete getTagsModel;
 
     delete getTagsOfProblemQuery;
-    delete getTagsQuery;
     delete insertTagQuery;
     delete deleteTagQuery;
     delete getIdOfTagQuery;
